@@ -1,28 +1,41 @@
-#
+# Importa o módulo subprocess, que será utilizado para instalar bibliotecas caso não estejam presentes.
 import subprocess
-#
+# Importa o módulo sys, que fornecerá o caminho do interpretador para instalar pacotes via pip.
 import sys
-#
-import numpy as np
-#
-from sklearn.metrics import mean_squared_error
+
+# Verifica se a biblioteca numpy está instalada; caso contrário, a instala.
+try:
+    import numpy as np
+except ImportError:
+    print("Biblioteca 'numpy' não encontrada. Instalando...")
+    # Instala a biblioteca "numpy" que será usada para operações numéricas.
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "numpy"])
+
+# Verifica se a biblioteca scikit-learn (sklearn) está instalada; caso contrário, a instala.
+try:
+    from sklearn.metrics import mean_squared_error
+except ImportError:
+    print("Biblioteca 'scikit-learn' não encontrada. Instalando...")
+    # Instala a biblioteca "scikit-learn" que será usada para escalonamento das features.
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "scikit-learn"])
 
 # Verifica se o TensorFlow está instalado; caso contrário, o instala
 try:
     import tensorflow as tf
+    # Importa o modelo Sequential e as camadas da biblioteca Keras para construir e treinar redes neurais.
+    from tensorflow.keras.models import Sequential
+    from tensorflow.keras.layers import LSTM, Dense, Dropout, Input
+    # Importa EarlyStopping, que interrompe o treinamento do modelo se o desempenho em validação não melhorar.
+    from tensorflow.keras.callbacks import EarlyStopping
 except ImportError:
     print("TensorFlow não encontrado. Instalando...")
-    # Instala a biblioteca "tensorflow" que será responsável por fornecer alguns métodos para a criação das funções de erro customizadas.
+    # Instala a biblioteca TensorFlow, que inclui o Keras para construção de redes neurais.
     subprocess.check_call([sys.executable, "-m", "pip", "install", "tensorflow"])
 
-# Importa um dos módulos da biblioteca "tensorflow" que será utilizado para criar o modelo LSTM. 
-from keras.models import Sequential
-# Importa um dos módulos da biblioteca "tensorflow" que será utilizado para construir as camadas que farão parte da arquitetura do modelo LSTM 
-# a ser usado. 
-from keras.layers import LSTM, Dense, Dropout, Input
-#
-from keras.callbacks import EarlyStopping
+'''
+A ser implementado...
 
+#
 custom_loss_functions_setup = {
     "adjmse1":{
         "alpha": 2.0
@@ -111,24 +124,41 @@ def adj4(alpha=2.5, beta=90.0):
         return tf.reduce_mean(adjusted_error)
     
     return loss
-
+'''
 
 class Model:
+    '''
+        Description:
+            Classe para criação e treinamento de um modelo LSTM para previsão de séries temporais. Essa classe define a estrutura 
+            de um modelo LSTM com camadas sequenciais e métodos para configurar e treinar a rede neural.
+    '''
     
     def __init__(self, features_number: int, lstm_sequence_length: int) -> None:
-        #
-        self.features_number = features_number
-        #
-        self.lstm_sequence_length = lstm_sequence_length
-
-    def create_LSTM_model(self):
         '''
             Description:
-
+                Inicializa a classe Model com o número de características e o comprimento da sequência LSTM.
             Args:
-
+                features_number (int): Número de características (features) em cada amostra de entrada.
+                lstm_sequence_length (int): Comprimento da janela móvel da camada LSTM.
             Return:
+                None: Esta função inicializa a instância do modelo com o número de características e o comprimento da sequência, 
+                sem retornar valores.
+        '''
+        
+        # Define o número de características (features) do modelo.
+        self.features_number = features_number
+        # Define o comprimento da janela móvel da camada LSTM do modelo.
+        self.lstm_sequence_length = lstm_sequence_length
 
+    def create_LSTM_model(self) -> None: 
+        '''
+            Description:
+                Cria e compila o modelo LSTM. O modelo contém camadas LSTM, Dropout entre as camadas e uma camada densa para a saída. 
+                É configurado para usar o otimizador Adam e a função de perda mean_squared_error.
+            Args:
+                Nenhum argumento é passado diretamente, pois a função utiliza os atributos do objeto. 
+            Return:
+                None: O modelo LSTM é armazenado no atributo `self.model` da instância.
         '''
         
         """
@@ -179,8 +209,8 @@ class Model:
         model.add(Dense(units=1))
 
         # Compila o modelo criado. O modelo é compilado com o otimizador 'adam', que é eficiente para grandes volumes de dados e adequado para
-        # problemas de regressão. Além disso, setamos a função de perda como sendo a 'mean_squared_error' (MSE), que é uma escolha comum para medir 
-        # o erro médio ao quadrado entre as previsões e os valores reais.
+        # problemas de regressão. Além disso, setamos a função de perda como sendo a 'mean_squared_error' (MSE), que é uma escolha comum para 
+        # medir o erro médio ao quadrado entre as previsões e os valores reais.
         model.compile(optimizer='adam', loss="mean_squared_error")
 
         # O atributo 'model' agora contém o modelo LSTM compilado e pode ser usada para treinamento e previsões.
@@ -190,10 +220,14 @@ class Model:
                                 y_train_scaled_sequences, y_test_scaled_sequences) -> tuple[np.ndarray, float]:
         '''
             Description:
-            
+                Treina o modelo LSTM e retorna as previsões e a métrica de erro RMSE.
             Args:
-
+                X_train_scaled_sequences (np.ndarray): Dados de entrada de treinamento, escalados e em janela móvel.
+                X_test_scaled_sequences (np.ndarray): Dados de entrada de teste, escalados e em janela móvel.
+                y_train_scaled_sequences (np.ndarray): Valores alvo de treinamento, escalados e em janela móvel.
+                y_test_scaled_sequences (np.ndarray): Valores alvo de teste, escalados e em janela móvel.
             Return:
+                tuple: Uma tupla contendo as previsões (`np.ndarray`) e o valor de erro RMSE (`float`) para o conjunto de teste.
         '''
             
         """
@@ -210,6 +244,8 @@ class Model:
                 dados que ele não viu durante o treinamento.
             6. `verbose`: Nível de verbosidade do processo de treinamento. `verbose=1` exibe uma barra de progresso detalhada durante o treinamento.
         """  
+        
+        # Configuração de Early Stopping para interromper o treinamento se a perda de validação não melhorar
         early_stopping = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
 
         # Treina o modelo
@@ -230,7 +266,6 @@ class Model:
                 avalia a precisão dessas previsões usando a métrica de Root Mean Squared Error (RMSE).
         """
 
-        
         # Realiza a previsão de valores para dados não vistos até então.
         predicted = self.model.predict(X_test_scaled_sequences)
 
